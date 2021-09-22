@@ -1,5 +1,7 @@
 package controllers
 
+import "sync"
+
 const (
 	basePath = "https://jsonplaceholder.typicode.com"
 )
@@ -11,18 +13,41 @@ type UserPosts struct {
 }
 
 func (u *UserPosts) Get() error {
-	u.UserInfo = &UserInfo{
-		Id: u.UserId,
-	}
-	if err := u.UserInfo.Get(); err != nil {
-		return err
+	var wg sync.WaitGroup
+	resultErr := make(chan error)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		u.UserInfo = &UserInfo{
+			Id: u.UserId,
+		}
+		err := u.UserInfo.Get()
+
+		resultErr <- err
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		posts, err := getPostsByUserId(u.UserId)
+		resultErr <- err
+
+		u.Posts = posts
+	}()
+
+	go func() {
+		wg.Wait()
+		close(resultErr)
+	}()
+
+	for err := range resultErr {
+		if err != nil {
+			return err
+		}
 	}
 
-	posts, err := getPostsByUserId(u.Id)
-	if err != nil {
-		return err
-	}
-
-	u.Posts = posts
 	return nil
 }
