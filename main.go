@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/darcops/transcarent/api"
 
 	"github.com/gin-gonic/gin"
@@ -16,5 +18,8 @@ func main() {
 			userPosts.GET(":id", api.GetUserPosts)
 		}
 	}
+
+	fmt.Println("Que onda amigos")
+
 	router.Run(":8000")
 }
